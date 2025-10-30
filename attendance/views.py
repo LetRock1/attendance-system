@@ -6,9 +6,45 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http import HttpResponse, JsonResponse
 from django.db.models import Count
+from django.contrib.auth.models import User
+from django.utils import timezone
 from .models import *
 from .services import AttendanceService, ReportGenerator
 from .forms import *
+
+# AUTO-INITIALIZATION FUNCTION
+def initialize_system():
+    """Automatically create admin account and initial data if they don't exist"""
+    try:
+        # Create admin user if doesn't exist
+        if not User.objects.filter(username='admin').exists():
+            User.objects.create_superuser(
+                username='admin',
+                email='admin@example.com', 
+                password='123'
+            )
+            print("Admin user created: admin / admin123")
+        
+        # Create default department if none exist
+        if not Department.objects.exists():
+            Department.objects.create(deptName="Computer Engineering")
+            print("Default department created")
+            
+        # Create default subject if none exist  
+        if not Subject.objects.exists():
+            dept = Department.objects.first()
+            Subject.objects.create(
+                subName="Data Structures",
+                credits=4,
+                department=dept
+            )
+            print("Default subject created")
+            
+    except Exception as e:
+        print(f"Initialization error: {e}")
+
+# Call this function when the app starts
+initialize_system()
 
 class StudentAPIView(View):
     def get(self, request):
@@ -53,6 +89,9 @@ class TeacherRequiredMixin(UserPassesTestMixin):
 # Authentication Views
 class CustomLoginView(View):
     def get(self, request):
+        # Auto-initialize system on first visit
+        initialize_system()
+        
         # Fix: Check if user attribute exists
         if hasattr(request, 'user') and request.user.is_authenticated:
             return redirect('dashboard')
@@ -110,7 +149,6 @@ class DashboardView(View):
                 return render(request, 'attendance/dashboard_teacher.html', context)
             except Teacher.DoesNotExist:
                 return redirect('logout')
-
 
 # CRUD Views for Admin
 class StudentListView(AdminRequiredMixin, View):
