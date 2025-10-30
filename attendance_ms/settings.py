@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import dj_database_url
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-your-secret-key-here'  # Change this for production!
@@ -59,14 +60,16 @@ DATABASES = {
     }
 }
 
-# Render PostgreSQL database
+# Render PostgreSQL database - FIXED VERSION
 if 'RENDER' in os.environ:
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.environ.get('DATABASE_URL'),
-            conn_max_age=600
+    import dj_database_url
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        DATABASES['default'] = dj_database_url.config(
+            default=database_url,
+            conn_max_age=600,
+            ssl_require=True
         )
-    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
