@@ -98,7 +98,10 @@ MIDDLEWARE = [
     # ... keep all other middleware
 ]
 
-# Render.com database
+import os
+import dj_database_url
+
+# Render PostgreSQL database
 if 'RENDER' in os.environ:
     DATABASES = {
         'default': dj_database_url.config(
@@ -107,5 +110,5 @@ if 'RENDER' in os.environ:
         )
     }
 
-# Allowed hosts - we'll update this after deployment
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+# Update ALLOWED_HOSTS for Render
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.onrender.com']
