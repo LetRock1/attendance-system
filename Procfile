@@ -1,0 +1,1 @@
+web: gunicorn attendance_ms.wsgi:application

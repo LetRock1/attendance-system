@@ -1,0 +1,74 @@
+{% extends 'attendance/base.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Class - AMS{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Class{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow p-6 max-w-4xl mx-auto">
+    <form method="POST" id="classroom-form">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% for field in form %}
+            <div class="{% if field.name == 'students' %}md:col-span-2{% endif %}">
+                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    {{ field.label }}
+                </label>
+                {{ field }}
+                {% if field.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ field.errors.0 }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+            <a href="{% url 'class-list' %}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md transition duration-200">
+                Cancel
+            </a>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition duration-200">
+                {% if form.instance.pk %}Update{% else %}Create{% endif %} Class
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const departmentSelect = document.getElementById('id_department');
+    const studentsSelect = document.getElementById('id_students');
+    
+    function loadStudents(departmentId) {
+        if (departmentId) {
+            fetch(`/api/students/?department_id=${departmentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Clear existing options
+                    studentsSelect.innerHTML = '';
+                    
+                    // Add new options
+                    data.students.forEach(student => {
+                        const option = document.createElement('option');
+                        option.value = student.id;
+                        option.textContent = `${student.name} (${student.studKey})`;
+                        studentsSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading students:', error));
+        } else {
+            studentsSelect.innerHTML = '<option value="">Select a department first</option>';
+        }
+    }
+    
+    // Load students when department changes
+    departmentSelect.addEventListener('change', function() {
+        loadStudents(this.value);
+    });
+    
+    // Load initial students if department is already selected
+    if (departmentSelect.value) {
+        loadStudents(departmentSelect.value);
+    }
+});
+</script>
+{% endblock %}
