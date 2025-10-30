@@ -150,3 +150,18 @@ class ReportGenerator:
             return buffer
         except AttendanceSession.DoesNotExist:
             return None
+
+@staticmethod
+def deactivate_old_sessions():
+    """Deactivate sessions from previous days"""
+    from django.utils import timezone
+    from .models import AttendanceSession
+    
+    today = timezone.now().date()
+    # Deactivate sessions from previous days
+    old_sessions = AttendanceSession.objects.filter(
+        date__lt=today,
+        is_active=True
+    )
+    old_sessions.update(is_active=False)
+    return old_sessions.count()

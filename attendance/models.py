@@ -94,12 +94,13 @@ class AttendanceSession(models.Model):
             raise ValidationError("End time must be after start time")
     
     def is_current(self):
-        """Check if session is for today and within time range"""
+        """Check if session is for today and hasn't ended yet"""
+        import datetime
+        from django.utils import timezone
         today = timezone.now().date()
         current_time = timezone.now().time()
-        
-        return (self.date == today and 
-                self.startTime <= current_time <= self.endTime)
+        # Session is "current" if it's today and hasn't ended yet
+        return (self.date == today and current_time <= self.endTime)
     
     def __str__(self):
         return f"{self.classroom.className} - {self.date}"

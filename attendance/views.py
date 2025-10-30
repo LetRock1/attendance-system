@@ -127,28 +127,28 @@ class DashboardView(View):
             }
             return render(request, 'attendance/dashboard_admin.html', context)
         else:
-            # Teacher dashboard - ONLY show current sessions
+            # Teacher dashboard - Show today's sessions that haven't ended yet
             try:
                 teacher = Teacher.objects.get(user=request.user)
-                today_sessions = AttendanceSession.objects.filter(
-                    classroom__teacher=teacher,
-                    date=timezone.now().date(),
-                    is_active=True
-                )
-                
-                # Filter only sessions that are currently active (within time range)
-                current_sessions = []
-                for session in today_sessions:
-                    if session.is_current():
-                        current_sessions.append(session)
-                
+                today = timezone.now().date()
+                current_time = timezone.now().time()
+    
+                # Show sessions for today that haven't ended yet
+                active_sessions = AttendanceSession.objects.filter(
+                classroom__teacher=teacher,
+                date=today,
+                endTime__gte=current_time,  # Only sessions that haven't ended
+                is_active=True
+                ).order_by('startTime')
+    
                 context = {
-                    'sessions': current_sessions,
-                    'teacher': teacher,
-                }
+                'sessions': active_sessions,
+                'teacher': teacher,
+                    }
                 return render(request, 'attendance/dashboard_teacher.html', context)
             except Teacher.DoesNotExist:
                 return redirect('logout')
+                
 
 # CRUD Views for Admin
 class StudentListView(AdminRequiredMixin, View):
@@ -382,50 +382,49 @@ class AttendanceSessionDeleteView(AdminRequiredMixin, View):
 class MarkAttendanceView(TeacherRequiredMixin, View):
     def get(self, request, session_id):
         session = get_object_or_404(AttendanceSession, pk=session_id)
-        
-        # Check if session is still valid
+    
+    # Check if session is still active (today and hasn't ended)
         if not session.is_current():
             return render(request, 'attendance/error.html', {
-                'error': 'This attendance session has expired. Attendance can only be marked during the session time.'
+            'error': 'This attendance session has ended. Attendance can only be marked during the session time.'
             })
-        
+    
+    # Rest of the code remains same...
         students = session.classroom.students.all()
-        
-        # Get existing attendance records
         existing_records = AttendanceRecord.objects.filter(session=session)
         present_students = [record.student.studId for record in existing_records if record.status]
-        
+    
         context = {
-            'session': session,
-            'students': students,
-            'present_students': present_students,
+        'session': session,
+        'students': students,
+        'present_students': present_students,
         }
         return render(request, 'attendance/mark_attendance.html', context)
-    
+
     def post(self, request, session_id):
         session = get_object_or_404(AttendanceSession, pk=session_id)
-        
-        # Check if session is still valid
+    
+    # Check if session is still active (today and hasn't ended)
         if not session.is_current():
             return render(request, 'attendance/error.html', {
-                'error': 'This attendance session has expired. Attendance can only be marked during the session time.'
+            'error': 'This attendance session has ended. Attendance can only be marked during the session time.'
             })
-        
+    
         present_student_ids = [int(id) for id in request.POST.getlist('present_students')]
         success, message = AttendanceService.mark_attendance(session_id, present_student_ids)
-        
+    
         if success:
-            # Deactivate session after attendance is marked
-            session.is_active = False
-            session.save()
+        # DON'T deactivate session - let it remain for the day
+        # session.is_active = False  # REMOVE THIS LINE
+        # session.save()  # REMOVE THIS LINE
             return redirect('dashboard')
         else:
             students = session.classroom.students.all()
             return render(request, 'attendance/mark_attendance.html', {
-                'error': message, 
-                'session': session,
-                'students': students,
-                'present_students': present_student_ids
+            'error': message, 
+            'session': session,
+            'students': students,
+            'present_students': present_student_ids
             })
 
 # Report Views
