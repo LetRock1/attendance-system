@@ -53,6 +53,7 @@ class TeacherRequiredMixin(UserPassesTestMixin):
 # Authentication Views
 class CustomLoginView(View):
     def get(self, request):
+        # Fix: Check if user attribute exists
         if hasattr(request, 'user') and request.user.is_authenticated:
             return redirect('dashboard')
         return render(request, 'attendance/login.html')
